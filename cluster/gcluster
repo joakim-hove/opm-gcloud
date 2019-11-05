@@ -25,6 +25,7 @@ import shlex
 import shutil
 import random
 import datetime
+import re
 from contextlib import contextmanager
 from argparse import ArgumentParser, ArgumentTypeError
 
@@ -110,6 +111,7 @@ GCLOUD_VPC_SUB = "slurm-network"
 GCLOUD_FILESTORE = ["filestore-01", "filestore-02"]
 GCLOUD_FS_MOUNT = ["home", "apps"]
 
+GCLOUD_COMPUTE_MACHINE_TYPE = "n1-standard-2"
 
 class ConfigKeys(object):
     slurm_gcp_url = "slurm_gcp_url"
@@ -124,7 +126,7 @@ class ConfigKeys(object):
     gcloud_sub_vpc = "gcloud_sub_vpc"
     gcloud_filestore = "gcloud_filestore"
     gcloud_fs_mount = "gcloud_fs_mount"
-
+    gcloud_compute_machine_type = "gcloud_compute_machine_type"
 
     env_variables = {gcloud_user : "GCLOUD_USER",
                      gcloud_project : "GCLOUD_PROJECT",
@@ -309,13 +311,53 @@ class StartCommands(Commands):
                                     config_file = config_file))
 
 
+    def create_slurm_script(self):
+        context = {"CLUSTER_NAME" : "ClusterName",
+                   "MACHINE_TYPE" : self.config[ConfigKeys]
+                   "INSTANCE_TYPE": "xxx",
+                   "PROJECT" : self.config[ConfigKeys.gcloud_project],
+                   "MUNGE_KEY" : "???",
+                   "SLURM_VERSION" : "xxx",
+                   "STATIC_NODE_COUNT" : "???",
+                   "MAX_NODE_COUNT" : "xxx",
+                   "DEF_SLURM_ACCT" : "xxxx",
+                   "EXTERNAL_COMPUTE_IPS" : "xxx",
+                   "GPU_TYPE" : "xxxx",
+                   "GPU_COUNT" : "yyy",
+                   "NFS_APPS_SERVER" : "xxx",
+                   "NFS_APPS_DIR" : "xxx",
+                   "NFS_HOME_SERVER" : "xxxx",
+                   "NFS_HOME_DIR" : "xxxx",
+                   "CONTROLLER_SECONDARY_DISK" : "xxxx",
+                   "PREEMPTIBLE" : "ppp",
+                   "SUSPEND_TIME" : "xxx"}
+
+        slurm_regexp = re.compile("@(.+)@")
+        path = tempfile.mkdtemp()
+        cwd = os.getcwd()
+        with pushd(path):
+            for slurm_file in ["startup-script.py"]:
+                os.makedirs("scripts")
+                data = open(os.path.join(cwd, "scripts", slurm_file)).readlines()
+                with open (os.path.join("scripts", slurm_file), "w") as f:
+                    for line in data:
+                        match_obj = slurm_regexp.search(line)
+                        if match_obj:
+                            key = match_obj.group(1)
+                            if key in context:
+                                value = context[key]
+                                line = line.replace("@{}@".format(key),value)
+                            else:
+                                print("Missing key: {}".format(key))
+                                #raise KeyError("Missing key: {}".format(key))
 
 
     def run(self):
-        self.vpc()
-        self.fw()
-        self.filestore()
-        self.deploy_slurm()
+        self.create_slurm_script()
+        #self.vpc()
+        #self.fw()
+        #self.filestore()
+        #self.deploy_slurm()
 
 
 class StopCommands(Commands):
@@ -399,7 +441,7 @@ resources:
     # Optional network configuration fields
     # READ slurm.jinja.schema for prerequisites
     vpc_net                 : {vpc}
-    vpc_subnet              : {sub_vpc}
+    vpc_subnet              : {sub_vp
     #shared_vpc_host_proj    : < my-shared-vpc-project-name >
 
     controller_machine_type : n1-standard-2
