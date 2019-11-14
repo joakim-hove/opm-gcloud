@@ -140,7 +140,7 @@ class ConfigKeys(object):
 
     keys = [slurm_gcp_ref, slurm_gcp_url, slurm_gcp_root, slurm_deployment, gcloud_user,
             gcloud_project, gcloud_zone, gcloud_region, gcloud_vpc, gcloud_sub_vpc,
-            gcloud_filestore, gcloud_fs_mount]
+            gcloud_filestore, gcloud_fs_mount, gcloud_compute_machine_type]
 
     required_keys = [slurm_deployment,
                      gcloud_user,
@@ -150,7 +150,8 @@ class ConfigKeys(object):
                      gcloud_vpc,
                      gcloud_sub_vpc,
                      gcloud_filestore,
-                     gcloud_fs_mount]
+                     gcloud_fs_mount,
+                     gcloud_compute_machine_type]
 
 
 
@@ -158,18 +159,19 @@ class Config(object):
 
     def __init__(self, config_file, slurm_gcp_root):
         # 1: Script defaults
-        self.context = {ConfigKeys.slurm_gcp_ref    : SLURM_GCP_REF,
-                        ConfigKeys.slurm_gcp_url    : SLURM_GCP_URL,
-                        ConfigKeys.slurm_gcp_root   : None,
-                        ConfigKeys.slurm_deployment : SLURM_DEPLOYMENT,
-                        ConfigKeys.gcloud_user      : None,
-                        ConfigKeys.gcloud_project   : None,
-                        ConfigKeys.gcloud_zone      : GCLOUD_ZONE,
-                        ConfigKeys.gcloud_region    : GCLOUD_REGION,
-                        ConfigKeys.gcloud_vpc       : GCLOUD_VPC,
-                        ConfigKeys.gcloud_sub_vpc   : GCLOUD_VPC_SUB,
-                        ConfigKeys.gcloud_filestore : GCLOUD_FILESTORE,
-                        ConfigKeys.gcloud_fs_mount  : GCLOUD_FS_MOUNT}
+        self.context = {ConfigKeys.slurm_gcp_ref               : SLURM_GCP_REF,
+                        ConfigKeys.slurm_gcp_url               : SLURM_GCP_URL,
+                        ConfigKeys.slurm_gcp_root              : None,
+                        ConfigKeys.slurm_deployment            : SLURM_DEPLOYMENT,
+                        ConfigKeys.gcloud_user                 : None,
+                        ConfigKeys.gcloud_project              : None,
+                        ConfigKeys.gcloud_zone                 : GCLOUD_ZONE,
+                        ConfigKeys.gcloud_region               : GCLOUD_REGION,
+                        ConfigKeys.gcloud_vpc                  : GCLOUD_VPC,
+                        ConfigKeys.gcloud_sub_vpc              : GCLOUD_VPC_SUB,
+                        ConfigKeys.gcloud_filestore            : GCLOUD_FILESTORE,
+                        ConfigKeys.gcloud_fs_mount             : GCLOUD_FS_MOUNT,
+                        ConfigKeys.gcloud_compute_machine_type : GCLOUD_COMPUTE_MACHINE_TYPE}
 
         # 2: From environment variables
         for key,var in ConfigKeys.env_variables.items():
@@ -202,7 +204,7 @@ class Config(object):
                 else:
                     env_var = ""
 
-                print("{:20s}{:20s}  : {}".format(key,env_var,value))
+                print("{:32s}{:20s}  : {}".format(key,env_var,value))
         print("---------------------------------------------------------------------------")
         self.validate()
 
@@ -313,7 +315,7 @@ class StartCommands(Commands):
 
     def create_slurm_script(self):
         context = {"CLUSTER_NAME" : "ClusterName",
-                   "MACHINE_TYPE" : self.config[ConfigKeys]
+                   "MACHINE_TYPE" : self.config[ConfigKeys.gcloud_compute_machine_type],
                    "INSTANCE_TYPE": "xxx",
                    "PROJECT" : self.config[ConfigKeys.gcloud_project],
                    "MUNGE_KEY" : "???",
@@ -329,6 +331,8 @@ class StartCommands(Commands):
                    "NFS_HOME_SERVER" : "xxxx",
                    "NFS_HOME_DIR" : "xxxx",
                    "CONTROLLER_SECONDARY_DISK" : "xxxx",
+                   "ZONE" : "zone",
+                   "DEF_SLURM_USERS" : "users",
                    "PREEMPTIBLE" : "ppp",
                    "SUSPEND_TIME" : "xxx"}
 
